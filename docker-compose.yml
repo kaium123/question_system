@@ -16,22 +16,6 @@ services:
     volumes:
       - my-db:/var/lib/mysql
 
-  app:
-    build: .
-    restart: always
-    environment:
-      DB_NAME: 'question_system'
-      DB_USER: 'question_system'
-      DB_PASSWORD: 'question_system'
-      DB_HOST: 'db'
-      DB_PORT: '3306'
-    ports:
-      - '8000:8000'
-    depends_on:
-      - db  
-    volumes:
-      - .:/app 
-
     
 volumes:
   my-db:
