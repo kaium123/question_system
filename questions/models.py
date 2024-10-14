@@ -1,8 +1,20 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.db import connection 
+
 
 class TagManager(models.Manager):
-    def get_root_tags(self):
+    def create_tag(self, tag_name, parent=None):
+        tag = self.create(tag_name=tag_name, parent=parent)
+        return tag
+
+    def get_by_tags(self,tag_id):
+        return self.filter(id=tag_id)
+    
+    def get_child_tags(self,tag_id):
+        return self.filter(parent_id=tag_id)
+    
+    def get_all_parent_tags(self):
         return self.filter(parent__isnull=True)
     
     def get_tag_question_statistics(self, root_tag_id):
@@ -43,24 +55,27 @@ class TagManager(models.Manager):
         }
 
 
-# Tag model using the custom manager
 class Tag(models.Model):
     tag_name = models.CharField(max_length=100)
     parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE)
     step = models.IntegerField(default=0)
 
-    objects = TagManager()  # Assign the custom manager
+    obj = TagManager()
 
     def __str__(self):
         return self.tag_name
 
 
 class QuestionManager(models.Manager):
-    def with_answer(self, answer):
-        return self.filter(answer=answer)
+    def filter_by_tag(self, tag_id):
+        return self.filter(tag_id=tag_id)
 
-    def by_tag(self, tag_id):
-        return self.filter(tag__id=tag_id)
+    def exclude_read_questions(self, read_question_ids):
+        return self.exclude(id__in=read_question_ids)
+
+    def include_read_questions(self, read_question_ids):
+        return self.filter(id__in=read_question_ids)
+
 
 
 class Question(models.Model):
@@ -72,7 +87,7 @@ class Question(models.Model):
     answer = models.CharField(max_length=255)
     tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
 
-    objects = QuestionManager() 
+    # obj = QuestionManager() 
 
     def __str__(self):
         return self.question
