@@ -11,70 +11,43 @@ from django.db import connection
 from django.db.models import Prefetch
 from rest_framework.pagination import PageNumberPagination
 
-
-def get_tag_question_statistics(root_tag_id): 
-        print("tag_id. ---  ",root_tag_id)
-        query = """
-            WITH RECURSIVE TagHierarchy AS (
-                SELECT t.id AS tag_id
-                FROM questions_tag t
-                WHERE t.id = %s  
-
-                UNION ALL
-
-                SELECT t.id AS tag_id
-                FROM questions_tag t
-                INNER JOIN TagHierarchy th ON t.parent_id = th.tag_id
-            )
-            SELECT
-                SUM(COUNT(DISTINCT q.id)) OVER() AS total_questions,
-                SUM(COUNT(DISTINCT rq.id)) OVER() AS total_read_questions,
-                SUM(COUNT(DISTINCT fq.id)) OVER() AS total_favorite_questions
-            FROM TagHierarchy th
-            LEFT JOIN questions_question q ON q.tag_id = th.tag_id  
-            LEFT JOIN questions_readquestion rq ON rq.question_id = q.id  
-            LEFT JOIN questions_favoritequestion fq ON fq.question_id = q.id
-            GROUP BY th.tag_id;
-        """
-        
-        print("Executing SQL Query:", query % root_tag_id)  
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Tag
+from .serializers import TagSerializer
+from .managers import TagManager  # Assuming TagManager is in a separate file, adjust the import as needed
+from .models import get_tag_question_statistics  # If it's inside models
 
 
-        with connection.cursor() as cursor:
-            cursor.execute(query, [root_tag_id])
-            result = cursor.fetchone()  
-
-        return {
-            'total_questions': result[0],
-            'total_read_questions': result[1],
-            'total_favorite_questions': result[2],
-        }
-
-class TagWithCountView(APIView):    
+class TagWithCountView(APIView):
 
     def get(self, request):
         origin = request.GET.get('origin')
         tag_id = request.GET.get('tag_id')
 
         try:
-            if origin !="child":
-                if tag_id != None:
+            # Use manager methods for tag queries
+            if origin != "child":
+                if tag_id:
+                    Tag.objects
                     query_data = Tag.objects.filter(id=tag_id).prefetch_related('question_set')
                 else:
-                    query_data = Tag.objects.filter(parent__isnull=True).prefetch_related('question_set')
+                    query_data = Tag.objects.get_root_tags().prefetch_related('question_set')
             else:
-                if tag_id != None:
+                if tag_id:
                     query_data = Tag.objects.filter(parent_id=tag_id).prefetch_related('question_set')
-                
+
             print("SQL Query:", query_data.query)
 
+            # Collect statistics for each tag
             tag_statistics = []
             for tag in query_data:
-                tag_name = tag.tag_name 
-                res = get_tag_question_statistics(tag.id)
+                tag_name = tag.tag_name
+                res = Tag.objects.get_tag_question_statistics(tag.id)  # Use manager method to get statistics
                 tag_statistics.append({
                     'tag_id': tag.id,
-                    'name': tag_name,  
+                    'name': tag_name,
                     'statistics': res,
                 })
                 print(f"Tag ID: {tag.id}, Name: {tag_name}, Statistics: {res}")
@@ -86,14 +59,14 @@ class TagWithCountView(APIView):
                 'data': {},
                 'message': 'Tag not found.'
             }, status=status.HTTP_404_NOT_FOUND)
-            
-            
-class TagCreateView(APIView):  
-      
+
+
+class TagCreateView(APIView):
+
     def post(self, request):
         serializer = TagSerializer(data=request.data)
         if serializer.is_valid():
-            tag = serializer.save()  
+            tag = serializer.save()
             return Response({
                 'data': TagSerializer(tag).data,
                 'message': 'Tag created successfully.'
@@ -103,6 +76,7 @@ class TagCreateView(APIView):
             'data': serializer.errors,
             'message': 'Validation failed.'
         }, status=status.HTTP_400_BAD_REQUEST)
+
             
 
 class TagListView(APIView):
