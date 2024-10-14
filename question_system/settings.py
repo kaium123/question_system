@@ -15,7 +15,6 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load environment variables from the .env file
 load_dotenv()
 
 
@@ -51,22 +50,15 @@ INSTALLED_APPS = [
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-print("DB_NAME:", os.environ.get('DB_NAME'))
-print("DB_USER:", os.environ.get('DB_USER'))
-print("DB_PASSWORD:", os.environ.get('DB_PASSWORD'))
-print("DB_HOST:", os.environ.get('DB_HOST'))
-print("DB_PORT:", os.environ.get('DB_PORT'))
-
-
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': os.environ.get('DB_NAME'),
-        'USER': os.environ.get('DB_USER'),
-        'PASSWORD': os.environ.get('DB_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST'),
-        'PORT': os.environ.get('DB_PORT'),
+        'USER': 'question_system',
+        'PASSWORD': 'question_system',
+        'HOST': '127.0.0.1',
+        'PORT': '3306',
     }
 }
 
