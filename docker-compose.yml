@@ -1,0 +1,21 @@
+version: '3.3'
+
+services:
+  db:
+    image: mysql:latest
+    restart: always
+    environment:
+      MYSQL_DATABASE: 'question_system'
+      MYSQL_USER: 'question_system'
+      MYSQL_PASSWORD: 'question_system'
+      MYSQL_ROOT_PASSWORD: 'question_system'
+    ports:
+      - '3306:3306'
+    expose:
+      - '3306'
+    volumes:
+      - my-db:/var/lib/mysql
+
+    
+volumes:
+  my-db:
